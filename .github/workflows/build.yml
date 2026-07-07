@@ -66,6 +66,9 @@ jobs:
           context: .
           file: ./deployment/docker/Dockerfile
           push: true
+          build-args: |
+            BASE_IMAGE=wso2/wso2mi:latest
+            WSO2_SERVER_HOME=/home/wso2carbon/wso2mi-4.4.0
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/wso2mi-api:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/wso2mi-api:${{ github.sha }}
