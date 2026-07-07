@@ -54,7 +54,10 @@
     </resource>
     <resource methods="POST" uri-template="/loan-review">
         <inSequence>
-        </inSequence>
+        <payloadFactory  media-type="json" template-type="default">
+        
+        <format>{mesage:"test"}</format>
+</payloadFactory><respond /></inSequence>
         <faultSequence>
         </faultSequence>
     </resource>
