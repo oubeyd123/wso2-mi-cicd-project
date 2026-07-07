@@ -1,1 +1,78 @@
+name: Build, Containerize, and Deploy WSO2 MI API
 
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      car_path: ${{ steps.findcar.outputs.car_path }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+
+      - name: Build with Maven
+        run: mvn -B clean install
+
+      - id: findcar
+        run: echo "car_path=$(find . -name '*.car' | head -n 1)" >> $GITHUB_OUTPUT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mi-carbon-app
+          path: ${{ steps.findcar.outputs.car_path }}
+
+  dockerize:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: mi-carbon-app
+          path: target/
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/wso2mi-api:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/wso2mi-api:${{ github.sha }}
+
+  deploy:
+    needs: dockerize
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy container to target server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.MI_SSH_HOST }}
+          username: ${{ secrets.MI_SSH_USER }}
+          key: ${{ secrets.MI_SSH_KEY }}
+          script: |
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/wso2mi-api:${{ github.sha }}
+            docker stop wso2mi || true
+            docker rm wso2mi || true
+            docker run -d --name wso2mi \
+              -p 8290:8290 -p 8253:8253 -p 9164:9164 \
+              ${{ secrets.DOCKERHUB_USERNAME }}/wso2mi-api:${{ github.sha }}
