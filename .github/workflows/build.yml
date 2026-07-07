@@ -2,7 +2,7 @@ name: Build, Containerize, and Deploy WSO2 MI API
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build:
@@ -16,8 +16,8 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          distribution: "temurin"
-          java-version: "21"
+          distribution: 'temurin'
+          java-version: '21'
 
       - name: Cache Maven packages
         uses: actions/cache@v4
@@ -66,10 +66,12 @@ jobs:
           context: .
           file: ./deployment/docker/Dockerfile
           push: true
-          
+          build-args: |
+            BASE_IMAGE=wso2/wso2mi:latest
+            WSO2_SERVER_HOME=/home/wso2carbon/wso2mi-4.6.0
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/wso2mi-api:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/wso2mi-api:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
 
   deploy:
     needs: dockerize
@@ -82,9 +84,9 @@ jobs:
           username: ${{ secrets.MI_SSH_USER }}
           key: ${{ secrets.MI_SSH_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/wso2mi-api:${{ github.sha }}
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
             docker stop wso2mi || true
             docker rm wso2mi || true
             docker run -d --name wso2mi \
               -p 8290:8290 -p 8253:8253 -p 9164:9164 \
-              ${{ secrets.DOCKERHUB_USERNAME }}/wso2mi-api:${{ github.sha }}
+              ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
