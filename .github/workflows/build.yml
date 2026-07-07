@@ -68,8 +68,8 @@ jobs:
           push: true
           
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/wso2mi-api:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/wso2mi-api:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
 
   deploy:
     needs: dockerize
@@ -82,9 +82,9 @@ jobs:
           username: ${{ secrets.MI_SSH_USER }}
           key: ${{ secrets.MI_SSH_KEY }}
           script: |
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/wso2mi-api:${{ github.sha }}
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
             docker stop wso2mi || true
             docker rm wso2mi || true
             docker run -d --name wso2mi \
               -p 8290:8290 -p 8253:8253 -p 9164:9164 \
-              ${{ secrets.DOCKERHUB_USERNAME }}/wso2mi-api:${{ github.sha }}
+              ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
