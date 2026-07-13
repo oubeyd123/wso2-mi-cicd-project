@@ -91,26 +91,17 @@ jobs:
         run: |
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
 
-
-      - name: Stop old WSO2 MI container
+      - name: Stop and remove old WSO2 MI container (if it exists)
         shell: powershell
         run: |
-          docker stop wso2mi 2>$null
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "No running container found"
+          $existing = docker ps -a --filter "name=^wso2mi$" --format "{{.Names}}"
+          if ($existing -eq "wso2mi") {
+            Write-Host "Existing container found - stopping and removing..."
+            docker stop wso2mi
+            docker rm wso2mi
+          } else {
+            Write-Host "No existing container named wso2mi - nothing to remove."
           }
-          exit 0
-
-
-      - name: Remove old WSO2 MI container
-        shell: powershell
-        run: |
-          docker rm wso2mi 2>$null
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "No container found to remove"
-          }
-          exit 0
-
 
       - name: Start new WSO2 MI container
         shell: powershell
@@ -120,7 +111,6 @@ jobs:
             -p 8253:8253 `
             -p 9164:9164 `
             ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
-
 
       - name: Verify container is running
         shell: powershell
