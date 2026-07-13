@@ -86,6 +86,7 @@ jobs:
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
 
       - name: Stop old container
+        shell: bash
         run: |
           docker stop wso2mi || true
           docker rm wso2mi || true
