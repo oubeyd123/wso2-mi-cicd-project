@@ -40,6 +40,7 @@ jobs:
           name: mi-carbon-app
           path: ${{ steps.findcar.outputs.car_path }}
 
+
   dockerize:
     needs: build
     runs-on: ubuntu-latest
@@ -76,28 +77,43 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
 
+
   deploy:
     needs: dockerize
     runs-on: self-hosted
 
     steps:
       - name: Pull latest image
+        shell: powershell
         run: |
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
 
       - name: Stop old container
-        shell: bash
+        shell: powershell
         run: |
-          docker stop wso2mi || true
-          docker rm wso2mi || true
+          docker stop wso2mi
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "No running container found"
+          }
+
+      - name: Remove old container
+        shell: powershell
+        run: |
+          docker rm wso2mi
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "No container found to remove"
+          }
 
       - name: Run new container
+        shell: powershell
         run: |
-          docker run -d --name wso2mi \
-            -p 8290:8290 \
-            -p 8253:8253 \
-            -p 9164:9164 \
+          docker run -d --name wso2mi `
+            -p 8290:8290 `
+            -p 8253:8253 `
+            -p 9164:9164 `
             ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
 
-      - name: Show running containers
-        run: docker ps
+      - name: Check container
+        shell: powershell
+        run: |
+          docker ps
