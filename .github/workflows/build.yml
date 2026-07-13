@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       car_path: ${{ steps.findcar.outputs.car_path }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -16,7 +17,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '21'
 
       - name: Cache Maven packages
@@ -30,7 +31,8 @@ jobs:
 
       - name: Locate CAR file
         id: findcar
-        run: echo "car_path=$(find . -name '*.car' | head -n 1)" >> $GITHUB_OUTPUT
+        run: |
+          echo "car_path=$(find . -name '*.car' | head -n 1)" >> $GITHUB_OUTPUT
 
       - name: Upload CAR as artifact
         uses: actions/upload-artifact@v4
@@ -41,6 +43,7 @@ jobs:
   dockerize:
     needs: build
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -75,18 +78,25 @@ jobs:
 
   deploy:
     needs: dockerize
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+
     steps:
-      - name: Deploy container to target server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.MI_SSH_HOST }}
-          username: ${{ secrets.MI_SSH_USER }}
-          key: ${{ secrets.MI_SSH_KEY }}
-          script: |
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
-            docker stop wso2mi || true
-            docker rm wso2mi || true
-            docker run -d --name wso2mi \
-              -p 8290:8290 -p 8253:8253 -p 9164:9164 \
-              ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
+      - name: Pull latest image
+        run: |
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
+
+      - name: Stop old container
+        run: |
+          docker stop wso2mi || true
+          docker rm wso2mi || true
+
+      - name: Run new container
+        run: |
+          docker run -d --name wso2mi \
+            -p 8290:8290 \
+            -p 8253:8253 \
+            -p 9164:9164 \
+            ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
+
+      - name: Show running containers
+        run: docker ps
