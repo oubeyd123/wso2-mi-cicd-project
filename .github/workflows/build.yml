@@ -5,8 +5,10 @@ on:
     branches: [ main ]
 
 jobs:
+
   build:
     runs-on: ubuntu-latest
+
     outputs:
       car_path: ${{ steps.findcar.outputs.car_path }}
 
@@ -34,7 +36,7 @@ jobs:
         run: |
           echo "car_path=$(find . -name '*.car' | head -n 1)" >> $GITHUB_OUTPUT
 
-      - name: Upload CAR as artifact
+      - name: Upload CAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: mi-carbon-app
@@ -58,13 +60,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Docker Hub
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push image
+      - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -83,28 +85,34 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Pull latest image
+
+      - name: Pull Docker image
         shell: powershell
         run: |
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
 
-      - name: Stop old container
+
+      - name: Stop old WSO2 MI container
         shell: powershell
         run: |
-          docker stop wso2mi
+          docker stop wso2mi 2>$null
           if ($LASTEXITCODE -ne 0) {
             Write-Host "No running container found"
           }
+          exit 0
 
-      - name: Remove old container
+
+      - name: Remove old WSO2 MI container
         shell: powershell
         run: |
-          docker rm wso2mi
+          docker rm wso2mi 2>$null
           if ($LASTEXITCODE -ne 0) {
             Write-Host "No container found to remove"
           }
+          exit 0
 
-      - name: Run new container
+
+      - name: Start new WSO2 MI container
         shell: powershell
         run: |
           docker run -d --name wso2mi `
@@ -113,7 +121,8 @@ jobs:
             -p 9164:9164 `
             ${{ secrets.DOCKERHUB_USERNAME }}/wso2-mi-cicd-project:${{ github.sha }}
 
-      - name: Check container
+
+      - name: Verify container is running
         shell: powershell
         run: |
           docker ps
