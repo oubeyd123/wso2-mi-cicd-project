@@ -54,10 +54,29 @@
     </resource>
     <resource methods="POST" uri-template="/loan-review">
         <inSequence>
-        <payloadFactory  media-type="json" template-type="default">
-        
-        <format>{mesage:"test"}</format>
-</payloadFactory><respond /></inSequence>
+            <email.send configKey="test">
+                <from>test</from>
+                <personalName></personalName>
+                <to>test</to>
+                <cc></cc>
+                <bcc></bcc>
+                <replyTo></replyTo>
+                <subject></subject>
+                <content>test</content>
+                <contentType>text/html</contentType>
+                <encoding>UTF-8</encoding>
+                <attachments></attachments>
+                <inlineImages>[]</inlineImages>
+                <contentTransferEncoding>Base64</contentTransferEncoding>
+                <responseVariable>email_send_1</responseVariable>
+                <overwriteBody>false</overwriteBody>
+            </email.send>
+            <payloadFactory media-type="json" template-type="default">
+
+                <format>{mesage:"test"}</format>
+            </payloadFactory>
+            <respond />
+        </inSequence>
         <faultSequence>
         </faultSequence>
     </resource>
